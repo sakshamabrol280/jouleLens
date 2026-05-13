@@ -1,6 +1,6 @@
 """
 JouleLens — AI Green Refactor Page.
-AI-powered code optimization suggestions using Claude.
+AI-powered code optimization suggestions using Gemini.
 """
 
 import streamlit as st
@@ -20,8 +20,10 @@ init_db()
 
 # Header
 st.markdown('<h1 class="gradient-header">🤖 AI Green Refactor</h1>', unsafe_allow_html=True)
+language = st.session_state.get("selected_language", "Python")
+
 st.markdown(
-    '<p class="gradient-subtitle">Claude-powered energy optimization for your Python code</p>',
+    f'<p class="gradient-subtitle">Gemini-powered energy optimization for your {language} code</p>',
     unsafe_allow_html=True,
 )
 
@@ -47,12 +49,22 @@ if last_result and code:
     st.markdown('<div class="styled-divider"></div>', unsafe_allow_html=True)
 
 # Manual code input if not from profiler
+col_lang, col_space = st.columns([1, 3])
+with col_lang:
+    current_lang = st.session_state.get("selected_language", "Python")
+    language = st.selectbox(
+        "🌐 Language",
+        ["Python", "C", "C++", "Java"],
+        index=["Python", "C", "C++", "Java"].index(current_lang) if current_lang in ["Python", "C", "C++", "Java"] else 0,
+        key="refactor_language_selector"
+    )
+
 code = st.text_area(
     "📄 Code to Refactor",
     value=code,
     height=250,
     key="refactor_code_input",
-    placeholder="Paste Python code to refactor...",
+    placeholder=f"Paste {language} code to refactor...",
 )
 
 # ===== GENERATE REFACTOR =====
@@ -61,7 +73,7 @@ refactor_clicked = st.button("🌿 Generate Green Refactor", width="stretch", ty
 
 if refactor_clicked and code.strip():
     with st.spinner("🤖 JouleLens AI is analyzing your code for energy waste..."):
-        result = get_green_refactor(code, function_breakdown)
+        result = get_green_refactor(code, function_breakdown, language)
     
     if "error" in result:
         st.error(f"❌ {result['error']}")
@@ -77,7 +89,7 @@ if refactor_clicked and code.strip():
         
         # Mock mode indicator
         if result.get("_mock"):
-            st.caption("🔧 *Demo mode — add ANTHROPIC_API_KEY to .env for Claude-powered analysis*")
+            st.caption("🔧 *Demo mode — add GEMINI_API_KEY to .env for Gemini-powered analysis*")
         
         # Before/After score badges
         score_before = result.get("green_score_before", "D")
@@ -123,12 +135,13 @@ if refactor_clicked and code.strip():
         refactored_code = result.get("refactored_code", "")
         
         diff_col1, diff_col2 = st.columns(2)
+        lang_str = "python" if language == "Python" else ("cpp" if language == "C++" else ("c" if language == "C" else "java"))
         with diff_col1:
             st.markdown("**📌 Original Code**")
-            st.code(code, language="python")
+            st.code(code, language=lang_str)
         with diff_col2:
             st.markdown("**✅ Refactored Code**")
-            st.code(refactored_code, language="python")
+            st.code(refactored_code, language=lang_str)
         
         # Unified diff
         with st.expander("📋 View Unified Diff"):

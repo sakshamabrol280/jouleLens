@@ -1,6 +1,6 @@
 """
 JouleLens — AI Green Refactor Engine.
-Uses Anthropic Claude API to suggest energy-efficient code refactors.
+Uses Google Gemini API to suggest energy-efficient code refactors.
 """
 
 import os
@@ -9,49 +9,51 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SYSTEM_PROMPT = """You are JouleLens AI, an expert in energy-efficient Python programming. 
+def get_system_prompt(language):
+    return f"""You are JouleLens AI, an expert in energy-efficient {language} programming. 
 You analyze code for energy waste and suggest optimizations that reduce CPU cycles, 
 memory allocations, and unnecessary computation. You think in Joules, not just milliseconds.
 
-When given Python code, you must respond with valid JSON only, in this exact structure:
-{
+When given {language} code, you must respond with valid JSON only, in this exact structure:
+{{
   "summary": "2-3 sentence explanation of the main energy problems found",
   "estimated_energy_reduction_percent": <integer 5-60>,
-  "refactored_code": "<full refactored Python code as a string>",
+  "refactored_code": "<full refactored {language} code as a string>",
   "optimizations": [
-    {
+    {{
       "title": "Optimization name",
       "description": "What was changed and why it saves energy",
       "technique": "vectorization|memoization|algorithm|io_batching|memory|other",
       "impact": "high|medium|low"
-    }
+    }}
   ],
   "green_score_before": "<A|B|C|D|F>",
   "green_score_after": "<A|B|C|D|F>"
-}
+}}
 
 IMPORTANT: Return ONLY the JSON object. No markdown, no code fences, no explanation outside the JSON."""
 
 
-def get_green_refactor(code_string, function_breakdown=None):
+def get_green_refactor(code_string, function_breakdown=None, language="Python"):
     """
-    Send code to Claude for energy-optimized refactoring.
+    Send code to Gemini for energy-optimized refactoring.
     
     Args:
-        code_string: The Python code to refactor
+        code_string: The code to refactor
         function_breakdown: List of dicts with function energy data
     
     Returns:
         Parsed JSON dict with refactoring suggestions, or {"error": str} on failure.
     """
-    api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
     
     if not api_key:
         return _generate_mock_refactor(code_string)
     
     try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
+        from google import genai
+        from google.genai import types
+        client = genai.Client(api_key=api_key)
         
         # Build context about high-energy functions
         func_context = ""
@@ -62,26 +64,27 @@ def get_green_refactor(code_string, function_breakdown=None):
             for f in sorted_funcs:
                 func_context += f"- {f['function_name']}: {f['joules']:.4f}J ({f['percent_of_total']:.1f}% of total), called {f['calls']} times, grade {f['grade']}\n"
         
-        user_message = f"""Analyze this Python code for energy efficiency and provide an optimized refactored version:
+        user_message = f"""Analyze this {language} code for energy efficiency and provide an optimized refactored version:
 
-```python
+```{language.lower()}
 {code_string}
 ```
 {func_context}
 
 Return your response as a valid JSON object following the exact schema specified in your system prompt."""
 
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=2048,
-            system=SYSTEM_PROMPT,
-            messages=[
-                {"role": "user", "content": user_message}
-            ]
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=user_message,
+            config=types.GenerateContentConfig(
+                system_instruction=get_system_prompt(language),
+                temperature=0.2,
+                response_mime_type="application/json",
+            )
         )
         
         # Extract text content
-        result_text = response.content[0].text.strip()
+        result_text = response.text.strip()
         
         # Strip markdown code fences if present
         if result_text.startswith("```"):
@@ -106,7 +109,7 @@ Return your response as a valid JSON object following the exact schema specified
 def _generate_mock_refactor(code_string):
     """
     Generate a realistic mock refactoring response using simple heuristics.
-    Used when ANTHROPIC_API_KEY is not configured so the feature still demos.
+    Used when GEMINI_API_KEY is not configured so the feature still demos.
     """
     import re
 

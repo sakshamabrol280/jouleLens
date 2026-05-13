@@ -55,6 +55,13 @@ st.markdown('<div class="styled-divider"></div>', unsafe_allow_html=True)
 # ===== CODE INPUT =====
 col_input, col_opts = st.columns([3, 1])
 
+def handle_upload():
+    uploaded = st.session_state.get("file_upload_widget")
+    if uploaded is not None:
+        content = uploaded.read().decode("utf-8")
+        st.session_state.code_input = content
+        st.session_state.current_code = content
+
 with col_input:
     # Use code_input from session state if it exists, otherwise use current_code
     initial_value = st.session_state.get("code_input", st.session_state.get("current_code", ""))
@@ -64,7 +71,7 @@ with col_input:
         value=initial_value,
         height=300,
         key="code_input",
-        placeholder="# Paste your Python code here...\ndef my_function():\n    pass",
+        placeholder="# Paste your code here...",
     )
     st.session_state.current_code = code
 
@@ -72,13 +79,15 @@ with col_opts:
     st.markdown("#### ⚙️ Options")
     
     # File uploader
-    uploaded = st.file_uploader("📁 Or upload a .py file", type=["py"])
-    if uploaded is not None:
-        file_content = uploaded.read().decode("utf-8")
-        if st.session_state.get("code_input") != file_content:
-            st.session_state.current_code = file_content
-            st.session_state.code_input = file_content
-            st.rerun()
+    st.file_uploader("📁 Or upload a code file", type=["py", "c", "cpp", "java"], key="file_upload_widget", on_change=handle_upload)
+    
+    # Language selector
+    language = st.selectbox(
+        "🌐 Language",
+        ["Python", "C", "C++", "Java"],
+        index=0,
+        key="selected_language",
+    )
     
     # Workload type
     workload_type = st.radio(
@@ -98,11 +107,11 @@ if profile_clicked and st.session_state.current_code.strip():
     status_text = st.empty()
     
     steps = [
-        (0.15, "🔍 Parsing AST..."),
-        (0.30, "🔧 Instrumenting functions..."),
-        (0.50, "📊 Reading CPU telemetry..."),
-        (0.70, "💾 Calculating DRAM cost..."),
-        (0.85, "🏆 Scoring efficiency..."),
+        (0.10, "🔍 Parsing AST..."),
+        (0.20, "🔧 Instrumenting functions..."),
+        (0.40, "⏱️ Calibrating baseline (5s)..."),
+        (0.60, "📊 Measuring peak power..."),
+        (0.85, "🏆 Calculating E_net score..."),
     ]
     
     for progress, msg in steps:
@@ -111,7 +120,7 @@ if profile_clicked and st.session_state.current_code.strip():
         time.sleep(0.4)
     
     # Run simulation
-    result = simulate_energy(st.session_state.current_code, workload_type)
+    result = simulate_energy(st.session_state.current_code, workload_type, language)
     
     if "error" in result and result.get("total_joules", 0) == 0:
         progress_bar.progress(1.0)
@@ -134,6 +143,7 @@ if profile_clicked and st.session_state.current_code.strip():
         run_data = {
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "code_snippet": st.session_state.current_code,
+            "language": language,
             "workload_type": workload_type,
             "total_joules": result["total_joules"],
             "total_wh": cost_carbon["wh"],
@@ -172,6 +182,18 @@ if profile_clicked and st.session_state.current_code.strip():
             unsafe_allow_html=True,
         )
         
+        # Differential Baseline Metrics
+        st.markdown("### 📉 Differential Baseline Calibration")
+        db1, db2, db3 = st.columns(3)
+        with db1:
+            st.metric("System Idle Baseline (P_idle)", f"{result.get('p_idle', 0):.2f} W")
+        with db2:
+            st.metric("Gross Peak Power (P_total)", f"{result.get('p_total', 0):.2f} W")
+        with db3:
+            st.metric("Final Net Energy (E_net)", format_joules(result["total_joules"]))
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+
         # Metric columns
         m1, m2, m3, m4 = st.columns(4)
         with m1:
@@ -184,7 +206,7 @@ if profile_clicked and st.session_state.current_code.strip():
             st.metric("🌿 CO₂ Emitted", format_co2(cost_carbon["co2_grams"]))
         
         # Execution time & Complexity
-        time_c, space_c = analyze_complexity(st.session_state.current_code)
+        time_c, space_c = analyze_complexity(st.session_state.current_code, language)
         
         c1, c2, c3 = st.columns(3)
         with c1:

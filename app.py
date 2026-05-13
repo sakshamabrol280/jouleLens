@@ -129,7 +129,7 @@ with col2:
     <div class="metric-card">
         <div class="metric-label">🤖 REFACTOR</div>
         <div class="metric-value" style="font-size:1.1rem;">AI Optimization</div>
-        <div class="metric-delta">Claude-powered green refactoring</div>
+        <div class="metric-delta">Gemini-powered green refactoring</div>
     </div>
     """, unsafe_allow_html=True)
     

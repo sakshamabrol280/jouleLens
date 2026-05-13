@@ -10,6 +10,35 @@ import time
 import ast
 import sys
 import random
+import os
+
+def _read_rapl_energy_uj():
+    """Attempt to read from Intel RAPL energy_uj register. Return None on failure."""
+    try:
+        with open("/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj", "r") as f:
+            return float(f.read().strip())
+    except Exception:
+        return None
+
+def measure_idle_baseline(duration=5.0):
+    """
+    Measure system idle power ($P_{idle}$) for a given duration.
+    Attempts hardware telemetry via RAPL, falls back to simulation.
+    """
+    start_uj = _read_rapl_energy_uj()
+    if start_uj is not None:
+        time.sleep(duration)
+        end_uj = _read_rapl_energy_uj()
+        if end_uj is not None:
+            joules = (end_uj - start_uj) / 1e6
+            p_idle = joules / duration
+            return max(0.1, p_idle)
+    
+    # Fallback simulation
+    time.sleep(duration)
+    # Return a simulated baseline of ~2.5W to 4.5W
+    return random.uniform(2.5, 4.5)
+
 
 
 # TDP constants (simulated)
@@ -27,24 +56,32 @@ WORKLOAD_MULTIPLIERS = {
 ALLOWED_BUILTINS = frozenset({"<module>", "<listcomp>", "<dictcomp>", "<genexpr>"})
 
 
-def simulate_energy(code_string, workload_type="CPU-Bound"):
+import re
+
+def simulate_energy(code_string, workload_type="CPU-Bound", language="Python"):
     """
-    Profile a Python code string and return simulated energy measurements.
+    Profile a code string and return simulated energy measurements.
     
     Returns dict with total_joules, cpu_joules, dram_joules, total_wh,
     execution_time_ms, and function_breakdown list.
     """
     multiplier = WORKLOAD_MULTIPLIERS.get(workload_type, 1.0)
 
-    # Parse AST to find function names efficiently
-    try:
-        tree = ast.parse(code_string)
-        defined_functions = [
-            node.name for node in ast.walk(tree)
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        ]
-    except SyntaxError:
-        defined_functions = []
+    # Parse AST/Regex to find function names efficiently
+    defined_functions = []
+    if language == "Python":
+        try:
+            tree = ast.parse(code_string)
+            defined_functions = [
+                node.name for node in ast.walk(tree)
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            ]
+        except SyntaxError:
+            pass
+    else:
+        # Simple regex heuristic for C/C++/Java
+        matches = re.findall(r'\b\w+\s+(\w+)\s*\([^)]*\)\s*\{', code_string)
+        defined_functions = list(set(matches))
 
     exec_ns = {"__builtins__": __builtins__}
     profiler = None
@@ -53,8 +90,17 @@ def simulate_energy(code_string, workload_type="CPU-Bound"):
     # Deterministically check if a profiler is already active to prevent RuntimeError
     can_profile = sys.getprofile() is None
 
+    # Phase 1: Calibration
+    p_idle = measure_idle_baseline(duration=5.0)
+
     try:
-        if can_profile:
+        if language != "Python":
+            # Simulate execution for non-Python languages
+            start_time = time.perf_counter()
+            # Base simulated time on code length
+            time.sleep(min(0.5, len(code_string) * 0.0001))
+            end_time = time.perf_counter()
+        elif can_profile:
             profiler = cProfile.Profile()
             start_time = time.perf_counter()
             profiler.enable()
@@ -82,13 +128,25 @@ def simulate_energy(code_string, workload_type="CPU-Bound"):
             "function_breakdown": [],
         }
 
-    total_time = max(0.0, end_time - start_time)
+    total_time = max(0.001, end_time - start_time)
 
-    # Calculate energy using standard library random instead of heavy numpy
-    cpu_joules = BASE_TDP_WATTS * total_time * multiplier
-    dram_joules = DRAM_WATTS * total_time * 0.3
-    noise = random.gauss(0, 0.05 * cpu_joules) if cpu_joules > 0 else 0
-    total_joules = max(0.001, cpu_joules + dram_joules + noise)
+    # Calculate base wattage simulation
+    simulated_cpu_watts = BASE_TDP_WATTS * multiplier
+    simulated_dram_watts = DRAM_WATTS * 0.3
+    
+    # Phase 2: Gross Peak Power ($P_{total}$)
+    # Simulate total power = idle + load + noise
+    p_total = p_idle + simulated_cpu_watts + simulated_dram_watts + random.uniform(-0.5, 0.5)
+
+    # Phase 3: Differential Math -> E_net = (P_total - P_idle) * t
+    if p_total < p_idle:
+        e_net = 0.001
+    else:
+        e_net = (p_total - p_idle) * total_time
+
+    total_joules = e_net
+    cpu_joules = simulated_cpu_watts * total_time
+    dram_joules = simulated_dram_watts * total_time
 
     function_breakdown = []
 
@@ -153,6 +211,8 @@ def simulate_energy(code_string, workload_type="CPU-Bound"):
         "dram_joules": round(dram_joules, 6),
         "total_wh": round(total_joules / 3600, 8),
         "execution_time_ms": round(total_time * 1000, 3),
+        "p_idle": round(p_idle, 3),
+        "p_total": round(p_total, 3),
         "function_breakdown": function_breakdown,
     }
 

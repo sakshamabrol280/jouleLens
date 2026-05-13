@@ -128,12 +128,20 @@ print(results[-1])
 }
 
 
-def analyze_complexity(code_string):
+def analyze_complexity(code_string, language="Python"):
     """
-    Heuristically analyze Python code string for Time and Space complexity.
+    Heuristically analyze code string for Time and Space complexity.
     Returns (time_complexity, space_complexity).
     """
     import ast
+    import re
+    if language != "Python":
+        loops = len(re.findall(r'\b(for|while)\s*\(', code_string))
+        time_c = "O(1)" if loops == 0 else ("O(N)" if loops == 1 else ("O(N²)" if loops == 2 else "O(N³)"))
+        allocs = bool(re.search(r'\b(new|malloc|calloc|realloc|alloc|std::vector|List<)\b', code_string))
+        space_c = "O(N)" if allocs else "O(1)"
+        return time_c, space_c
+
     try:
         tree = ast.parse(code_string)
     except Exception:

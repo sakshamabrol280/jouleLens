@@ -26,6 +26,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TEXT NOT NULL,
             code_snippet TEXT NOT NULL,
+            language TEXT DEFAULT 'Python',
             workload_type TEXT,
             total_joules REAL,
             total_wh REAL,
@@ -42,6 +43,10 @@ def init_db():
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     """)
+    try:
+        cursor.execute("ALTER TABLE profiling_runs ADD COLUMN language TEXT DEFAULT 'Python'")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     conn.close()
 
@@ -58,14 +63,15 @@ def insert_run(run_dict):
 
     cursor.execute("""
         INSERT INTO profiling_runs 
-        (timestamp, code_snippet, workload_type, total_joules, total_wh,
+        (timestamp, code_snippet, language, workload_type, total_joules, total_wh,
          cost_usd, co2_grams, joule_score, region, carbon_intensity,
          function_breakdown, ai_refactor_available, ai_summary,
          ai_refactored_code, ai_energy_reduction_percent)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         run_dict.get("timestamp", ""),
         run_dict.get("code_snippet", ""),
+        run_dict.get("language", "Python"),
         run_dict.get("workload_type", "CPU-Bound"),
         run_dict.get("total_joules", 0.0),
         run_dict.get("total_wh", 0.0),

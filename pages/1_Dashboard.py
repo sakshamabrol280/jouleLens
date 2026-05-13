@@ -22,10 +22,7 @@ st.markdown(CSS, unsafe_allow_html=True)
 # Ensure DB is initialized
 init_db()
 
-# Seed mock data if empty
-if len(get_all_runs()) == 0:
-    from mock_data import seed_mock_data
-    seed_mock_data()
+
 
 # Header
 st.markdown('<h1 class="gradient-header">JouleLens Dashboard</h1>', unsafe_allow_html=True)
