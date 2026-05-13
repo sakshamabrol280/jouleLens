@@ -117,29 +117,35 @@ st.markdown(
 col1, col2, col3 = st.columns(3)
 with col1:
     st.markdown("""
+    <a href="Profiler" target="_self" style="text-decoration:none;">
     <div class="metric-card">
         <div class="metric-label">🔬 PROFILE</div>
         <div class="metric-value" style="font-size:1.1rem;">Energy Analysis</div>
         <div class="metric-delta">Measure real code energy cost</div>
     </div>
+    </a>
     """, unsafe_allow_html=True)
     
 with col2:
     st.markdown("""
+    <a href="Refactor" target="_self" style="text-decoration:none;">
     <div class="metric-card">
         <div class="metric-label">🤖 REFACTOR</div>
         <div class="metric-value" style="font-size:1.1rem;">AI Optimization</div>
         <div class="metric-delta">Gemini-powered green refactoring</div>
     </div>
+    </a>
     """, unsafe_allow_html=True)
     
 with col3:
     st.markdown("""
+    <a href="Carbon_Scheduler" target="_self" style="text-decoration:none;">
     <div class="metric-card">
         <div class="metric-label">🌍 SCHEDULE</div>
         <div class="metric-value" style="font-size:1.1rem;">Carbon Aware</div>
         <div class="metric-delta">Run workloads when the grid is clean</div>
     </div>
+    </a>
     """, unsafe_allow_html=True)
 
 st.markdown("")

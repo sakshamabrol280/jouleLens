@@ -312,6 +312,7 @@ html, body, [data-testid="stAppViewContainer"] {
     border-color: var(--accent-green);
     box-shadow: 0 4px 20px rgba(0, 255, 136, 0.1);
     transform: translateY(-2px);
+    cursor: pointer;
 }
 
 .metric-card .metric-label {

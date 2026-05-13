@@ -36,10 +36,20 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+col_lang, _ = st.columns([1, 3])
+with col_lang:
+    language = st.selectbox(
+        "🌐 Language",
+        ["Python", "C", "C++", "Java"],
+        index=0,
+        key="selected_language",
+    )
+
 # ===== DEMO SNIPPETS =====
 st.markdown("#### 📝 Quick Load Demo Snippets")
-demo_cols = st.columns(len(DEMO_SNIPPETS))
-demo_keys = list(DEMO_SNIPPETS.keys())
+current_snippets = DEMO_SNIPPETS.get(language, DEMO_SNIPPETS["Python"])
+demo_cols = st.columns(len(current_snippets))
+demo_keys = list(current_snippets.keys())
 button_labels = ["Demo 1", "Demo 2", "Demo 3"]
 
 for i, name in enumerate(demo_keys):
@@ -47,8 +57,8 @@ for i, name in enumerate(demo_keys):
         label = button_labels[i] if i < len(button_labels) else name
         if st.button(label, key=f"demo_{i}", width="stretch"):
             # Update the text area directly using its key for instant UI update
-            st.session_state.code_input = DEMO_SNIPPETS[name]
-            st.session_state.current_code = DEMO_SNIPPETS[name]
+            st.session_state.code_input = current_snippets[name]
+            st.session_state.current_code = current_snippets[name]
 
 st.markdown('<div class="styled-divider"></div>', unsafe_allow_html=True)
 
@@ -81,14 +91,7 @@ with col_opts:
     # File uploader
     st.file_uploader("📁 Or upload a code file", type=["py", "c", "cpp", "java"], key="file_upload_widget", on_change=handle_upload)
     
-    # Language selector
-    language = st.selectbox(
-        "🌐 Language",
-        ["Python", "C", "C++", "Java"],
-        index=0,
-        key="selected_language",
-    )
-    
+
     # Workload type
     workload_type = st.radio(
         "🔧 Workload Type",

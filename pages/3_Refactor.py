@@ -10,7 +10,7 @@ import json
 from styles import CSS
 from ai_refactor import get_green_refactor
 from database import update_run_with_refactor, init_db
-from utils import score_to_color, score_to_label, score_to_css_class, DEMO_SNIPPETS
+from utils import score_to_color, score_to_label, score_to_css_class, DEMO_SNIPPETS, format_joules
 
 # Inject CSS
 st.markdown(CSS, unsafe_allow_html=True)
@@ -74,6 +74,11 @@ refactor_clicked = st.button("🌿 Generate Green Refactor", width="stretch", ty
 if refactor_clicked and code.strip():
     with st.spinner("🤖 JouleLens AI is analyzing your code for energy waste..."):
         result = get_green_refactor(code, function_breakdown, language)
+        
+        # If the user didn't run the Profiler first, run it now in the background
+        if not last_result or "p_idle" not in last_result:
+            from energy_simulator import simulate_energy
+            last_result = simulate_energy(code, workload_type="CPU-Bound", language=language)
     
     if "error" in result:
         st.error(f"❌ {result['error']}")
@@ -122,13 +127,33 @@ if refactor_clicked and code.strip():
         
         # Energy reduction callout
         reduction = result.get("estimated_energy_reduction_percent", 0)
-        st.markdown(
-            f'<div class="energy-callout">'
-            f'<div class="callout-value">-{reduction}%</div>'
-            f'<div class="callout-label">Estimated Energy Reduction</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+        
+        if last_result and "p_idle" in last_result:
+            old_p_idle = last_result.get("p_idle", 0)
+            old_p_total = last_result.get("p_total", 0)
+            old_e_net = last_result.get("total_joules", 0)
+            
+            new_e_net = old_e_net * (1 - reduction/100.0)
+            est_p_total = old_p_idle + (old_p_total - old_p_idle) * (1 - reduction/100.0)
+            
+            st.markdown("### 📉 Projected Differential Baseline")
+            db1, db2, db3 = st.columns(3)
+            with db1:
+                st.metric("System Idle Baseline (P_idle)", f"{old_p_idle:.2f} W", "No Change", delta_color="off")
+            with db2:
+                st.metric("Est. New Peak Power (P_total)", f"{est_p_total:.2f} W", f"-{reduction}%")
+            with db3:
+                st.metric("Projected Net Energy (E_net)", format_joules(new_e_net), f"-{format_joules(old_e_net - new_e_net)}")
+                
+            st.markdown("<br>", unsafe_allow_html=True)
+        else:
+            st.markdown(
+                f'<div class="energy-callout">'
+                f'<div class="callout-value">-{reduction}%</div>'
+                f'<div class="callout-label">Estimated Energy Reduction</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
         
         # Side-by-side diff view
         st.markdown("### 📝 Code Comparison")

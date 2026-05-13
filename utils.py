@@ -87,7 +87,8 @@ def get_zone_display_name(zone_code):
 
 
 DEMO_SNIPPETS = {
-    "Demo 1 - Inefficient Loop": '''# Naive prime finder - energy inefficient
+    "Python": {
+        "Demo 1 - Inefficient Loop": '''# Naive prime finder - energy inefficient
 def find_primes(n):
     primes = []
     for num in range(2, n):
@@ -102,7 +103,7 @@ def find_primes(n):
 result = find_primes(5000)
 print(f"Found {len(result)} primes")
 ''',
-    "Demo 2 - Matrix Multiply": '''import random
+        "Demo 2 - Matrix Multiply": '''import random
 def matrix_multiply_naive(size):
     A = [[random.random() for _ in range(size)] for _ in range(size)]
     B = [[random.random() for _ in range(size)] for _ in range(size)]
@@ -115,7 +116,7 @@ def matrix_multiply_naive(size):
 
 result = matrix_multiply_naive(100)
 ''',
-    "Demo 3 - Efficient Fibonacci": '''from functools import lru_cache
+        "Demo 3 - Efficient Fibonacci": '''from functools import lru_cache
 @lru_cache(maxsize=None)
 def fibonacci(n):
     if n < 2:
@@ -125,6 +126,253 @@ def fibonacci(n):
 results = [fibonacci(i) for i in range(50)]
 print(results[-1])
 ''',
+    },
+    "C": {
+        "Demo 1 - Inefficient Loop": '''#include <stdio.h>
+#include <stdlib.h>
+
+// Naive prime finder - energy inefficient
+int* find_primes(int n, int* count) {
+    int* primes = malloc(n * sizeof(int));
+    *count = 0;
+    for (int num = 2; num < n; num++) {
+        int is_prime = 1;
+        for (int i = 2; i < num; i++) {
+            if (num % i == 0) {
+                is_prime = 0;
+            }
+        }
+        if (is_prime) {
+            primes[(*count)++] = num;
+        }
+    }
+    return primes;
+}
+
+int main() {
+    int count;
+    int* result = find_primes(5000, &count);
+    printf("Found %d primes\\n", count);
+    free(result);
+    return 0;
+}
+''',
+        "Demo 2 - Matrix Multiply": '''#include <stdlib.h>
+
+// Naive Matrix Multiplication
+void matrix_multiply_naive(int size) {
+    double** A = malloc(size * sizeof(double*));
+    double** B = malloc(size * sizeof(double*));
+    double** C = malloc(size * sizeof(double*));
+    for(int i=0; i<size; i++) {
+        A[i] = malloc(size * sizeof(double));
+        B[i] = malloc(size * sizeof(double));
+        C[i] = calloc(size, sizeof(double));
+        for(int j=0; j<size; j++) {
+            A[i][j] = (double)rand() / RAND_MAX;
+            B[i][j] = (double)rand() / RAND_MAX;
+        }
+    }
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            for (int k = 0; k < size; k++) {
+                C[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+}
+
+int main() {
+    matrix_multiply_naive(100);
+    return 0;
+}
+''',
+        "Demo 3 - Efficient Fibonacci": '''#include <stdio.h>
+
+long long cache[100] = {0};
+
+long long fibonacci(int n) {
+    if (n < 2) return n;
+    if (cache[n] != 0) return cache[n];
+    cache[n] = fibonacci(n-1) + fibonacci(n-2);
+    return cache[n];
+}
+
+int main() {
+    long long results[50];
+    for (int i = 0; i < 50; i++) {
+        results[i] = fibonacci(i);
+    }
+    printf("%lld\\n", results[49]);
+    return 0;
+}
+'''
+    },
+    "C++": {
+        "Demo 1 - Inefficient Loop": '''#include <iostream>
+#include <vector>
+
+// Naive prime finder - energy inefficient
+std::vector<int> find_primes(int n) {
+    std::vector<int> primes;
+    for (int num = 2; num < n; num++) {
+        bool is_prime = true;
+        for (int i = 2; i < num; i++) {
+            if (num % i == 0) {
+                is_prime = false;
+            }
+        }
+        if (is_prime) {
+            primes.push_back(num);
+        }
+    }
+    return primes;
+}
+
+int main() {
+    auto result = find_primes(5000);
+    std::cout << "Found " << result.size() << " primes" << std::endl;
+    return 0;
+}
+''',
+        "Demo 2 - Matrix Multiply": '''#include <vector>
+#include <cstdlib>
+
+// Naive Matrix Multiplication
+std::vector<std::vector<double>> matrix_multiply_naive(int size) {
+    std::vector<std::vector<double>> A(size, std::vector<double>(size));
+    std::vector<std::vector<double>> B(size, std::vector<double>(size));
+    std::vector<std::vector<double>> C(size, std::vector<double>(size, 0.0));
+    
+    for(int i=0; i<size; i++) {
+        for(int j=0; j<size; j++) {
+            A[i][j] = (double)std::rand() / RAND_MAX;
+            B[i][j] = (double)std::rand() / RAND_MAX;
+        }
+    }
+    
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            for (int k = 0; k < size; k++) {
+                C[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+    return C;
+}
+
+int main() {
+    auto result = matrix_multiply_naive(100);
+    return 0;
+}
+''',
+        "Demo 3 - Efficient Fibonacci": '''#include <iostream>
+#include <unordered_map>
+#include <vector>
+
+std::unordered_map<int, long long> cache;
+
+long long fibonacci(int n) {
+    if (n < 2) return n;
+    if (cache.count(n)) return cache[n];
+    cache[n] = fibonacci(n-1) + fibonacci(n-2);
+    return cache[n];
+}
+
+int main() {
+    std::vector<long long> results;
+    for (int i = 0; i < 50; i++) {
+        results.push_back(fibonacci(i));
+    }
+    std::cout << results.back() << std::endl;
+    return 0;
+}
+'''
+    },
+    "Java": {
+        "Demo 1 - Inefficient Loop": '''import java.util.ArrayList;
+import java.util.List;
+
+public class PrimeFinder {
+    // Naive prime finder - energy inefficient
+    public static List<Integer> findPrimes(int n) {
+        List<Integer> primes = new ArrayList<>();
+        for (int num = 2; num < n; num++) {
+            boolean isPrime = true;
+            for (int i = 2; i < num; i++) {
+                if (num % i == 0) {
+                    isPrime = false;
+                }
+            }
+            if (isPrime) {
+                primes.add(num);
+            }
+        }
+        return primes;
+    }
+
+    public static void main(String[] args) {
+        List<Integer> result = findPrimes(5000);
+        System.out.println("Found " + result.size() + " primes");
+    }
+}
+''',
+        "Demo 2 - Matrix Multiply": '''import java.util.Random;
+
+public class MatrixMath {
+    public static double[][] matrixMultiplyNaive(int size) {
+        Random rand = new Random();
+        double[][] A = new double[size][size];
+        double[][] B = new double[size][size];
+        double[][] C = new double[size][size];
+        
+        for(int i=0; i<size; i++) {
+            for(int j=0; j<size; j++) {
+                A[i][j] = rand.nextDouble();
+                B[i][j] = rand.nextDouble();
+            }
+        }
+        
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                for (int k = 0; k < size; k++) {
+                    C[i][j] += A[i][k] * B[k][j];
+                }
+            }
+        }
+        return C;
+    }
+
+    public static void main(String[] args) {
+        double[][] result = matrixMultiplyNaive(100);
+    }
+}
+''',
+        "Demo 3 - Efficient Fibonacci": '''import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Fib {
+    private static HashMap<Integer, Long> cache = new HashMap<>();
+
+    public static long fibonacci(int n) {
+        if (n < 2) return n;
+        if (cache.containsKey(n)) return cache.get(n);
+        long result = fibonacci(n-1) + fibonacci(n-2);
+        cache.put(n, result);
+        return result;
+    }
+
+    public static void main(String[] args) {
+        List<Long> results = new ArrayList<>();
+        for (int i = 0; i < 50; i++) {
+            results.add(fibonacci(i));
+        }
+        System.out.println(results.get(results.size() - 1));
+    }
+}
+'''
+    }
 }
 
 
