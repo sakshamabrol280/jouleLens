@@ -114,8 +114,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-col1, col2, col3 = st.columns(3)
-with col1:
+r1_col1, r1_col2 = st.columns(2)
+with r1_col1:
     st.markdown("""
     <a href="Profiler" target="_self" style="text-decoration:none;">
     <div class="metric-card">
@@ -126,7 +126,7 @@ with col1:
     </a>
     """, unsafe_allow_html=True)
     
-with col2:
+with r1_col2:
     st.markdown("""
     <a href="Refactor" target="_self" style="text-decoration:none;">
     <div class="metric-card">
@@ -136,8 +136,9 @@ with col2:
     </div>
     </a>
     """, unsafe_allow_html=True)
-    
-with col3:
+
+r2_col1, r2_col2 = st.columns(2)
+with r2_col1:
     st.markdown("""
     <a href="Carbon_Scheduler" target="_self" style="text-decoration:none;">
     <div class="metric-card">
@@ -148,8 +149,19 @@ with col3:
     </a>
     """, unsafe_allow_html=True)
 
+with r2_col2:
+    st.markdown("""
+    <a href="Live_Monitor" target="_self" style="text-decoration:none;">
+    <div class="metric-card">
+        <div class="metric-label">📊 LIVE MONITOR</div>
+        <div class="metric-value" style="font-size:1.1rem;">System Telemetry</div>
+        <div class="metric-delta">Track real-time background tasks</div>
+    </div>
+    </a>
+    """, unsafe_allow_html=True)
+
 st.markdown("")
-st.info("👈 **Use the sidebar pages to navigate** — Dashboard, Profiler, AI Refactor, Carbon Scheduler, and History.")
+st.info("👈 **Use the sidebar pages to navigate** — Dashboard, Profiler, AI Refactor, Carbon Scheduler, History, and Live Monitor.")
 
 st.markdown(
     '<div class="joulelens-footer">Powered by JouleLens AI — Making Every Joule Count ⚡</div>',
