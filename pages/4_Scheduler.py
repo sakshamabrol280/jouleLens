@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 from styles import CSS
 from carbon_api import (
-    get_carbon_intensity, get_carbon_forecast_mock,
+    get_carbon_intensity, get_carbon_forecast,
     get_best_window, get_grid_status, ZONE_NAMES,
 )
 from energy_simulator import get_emissions_equivalents
@@ -136,7 +136,7 @@ st.markdown('<div class="styled-divider"></div>', unsafe_allow_html=True)
 # ===== 24-HOUR FORECAST =====
 st.markdown("### 📈 24-Hour Carbon Intensity Forecast")
 
-forecast = get_carbon_forecast_mock(zone_code)
+forecast = get_carbon_forecast(zone_code)
 best_window = get_best_window(forecast)
 
 # Build forecast chart

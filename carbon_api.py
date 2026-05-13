@@ -9,7 +9,7 @@ import requests
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 # Mock carbon intensity data (gCO₂/kWh) for fallback
 MOCK_CARBON_DATA = {
@@ -47,28 +47,48 @@ ZONE_NAMES = {
 def get_carbon_intensity(zone_code):
     """
     Fetch current carbon intensity for a zone.
-    Uses ElectricityMaps API if key available, otherwise mock data.
+    Uses UK Carbon Intensity API for Great Britain (free, no key).
+    Uses ElectricityMaps API for others if key available, otherwise mock data.
     
     Returns: {"carbon_intensity": float, "zone": str, "is_mock": bool}
     """
-    api_key = os.getenv("ELECTRICITY_MAPS_API_KEY", "").strip()
-    
-    if api_key:
+    if zone_code == "GB":
         try:
-            response = requests.get(
-                f"https://api.electricitymap.org/v3/carbon-intensity/latest?zone={zone_code}",
-                headers={"auth-token": api_key},
-                timeout=5,
-            )
-            if response.status_code == 200:
-                data = response.json()
+            res = requests.get("https://api.carbonintensity.org.uk/intensity", timeout=5)
+            if res.status_code == 200:
+                data = res.json()
+                intensity = data["data"][0]["intensity"]["actual"]
+                if intensity is None:
+                    intensity = data["data"][0]["intensity"]["forecast"]
                 return {
-                    "carbon_intensity": data.get("carbonIntensity", 300),
+                    "carbon_intensity": intensity,
                     "zone": zone_code,
                     "is_mock": False,
                 }
-        except (requests.RequestException, KeyError, ValueError):
-            pass  # Fall through to mock data
+        except Exception:
+            pass # Fall back to mock
+            
+    api_key = os.getenv("ELECTRICITY_MAPS_API_KEY", "").strip()
+    
+    if api_key:
+        urls = [
+            f"https://api-access.electricitymaps.com/free-tier/carbon-intensity/latest?zone={zone_code}",
+            f"https://api.electricitymap.org/v3/carbon-intensity/latest?zone={zone_code}",
+            f"https://api.electricitymaps.com/v3/carbon-intensity/latest?zone={zone_code}"
+        ]
+        for url in urls:
+            try:
+                response = requests.get(url, headers={"auth-token": api_key}, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    if "error" not in data and "carbonIntensity" in data:
+                        return {
+                            "carbon_intensity": data["carbonIntensity"],
+                            "zone": zone_code,
+                            "is_mock": False,
+                        }
+            except (requests.RequestException, KeyError, ValueError):
+                continue
     
     # Fallback to mock data
     intensity = MOCK_CARBON_DATA.get(zone_code, 300)
@@ -111,6 +131,72 @@ def get_carbon_forecast_mock(zone_code):
         })
     
     return forecast
+
+
+def get_carbon_forecast(zone_code):
+    """
+    Fetch 24-hour carbon intensity forecast for a zone from API.
+    Uses UK Carbon Intensity API for Great Britain (free, no key).
+    Falls back to mock data if API key is invalid or request fails.
+    """
+    if zone_code == "GB":
+        try:
+            res = requests.get("https://api.carbonintensity.org.uk/intensity/fw24h", timeout=5)
+            if res.status_code == 200:
+                data = res.json()
+                forecast = []
+                now = datetime.now()
+                # The API returns 48 half-hour blocks. We take every other item for hourly data.
+                for i in range(0, min(48, len(data["data"])), 2):
+                    block = data["data"][i]
+                    intensity = block["intensity"]["forecast"]
+                    hour_idx = i // 2
+                    timestamp = (now + timedelta(hours=hour_idx)).strftime("%Y-%m-%d %H:%M")
+                    
+                    forecast.append({
+                        "hour": hour_idx,
+                        "actual_hour": (now.hour + hour_idx) % 24,
+                        "carbon_intensity": round(intensity, 1),
+                        "timestamp": timestamp,
+                    })
+                if forecast:
+                    return forecast
+        except Exception:
+            pass # Fall back to mock
+            
+    api_key = os.getenv("ELECTRICITY_MAPS_API_KEY", "").strip()
+    
+    if api_key:
+        urls = [
+            f"https://api-access.electricitymaps.com/free-tier/carbon-intensity/forecast?zone={zone_code}",
+            f"https://api.electricitymap.org/v3/carbon-intensity/forecast?zone={zone_code}",
+            f"https://api.electricitymaps.com/v3/carbon-intensity/forecast?zone={zone_code}"
+        ]
+        for url in urls:
+            try:
+                response = requests.get(url, headers={"auth-token": api_key}, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    if "error" not in data and "forecast" in data:
+                        forecast = []
+                        now = datetime.now()
+                        current_hour = now.hour
+                        # Limit to next 24 hours
+                        for i, f in enumerate(data["forecast"][:24]):
+                            intensity = f.get("carbonIntensity", 300)
+                            timestamp = (now + timedelta(hours=i)).strftime("%Y-%m-%d %H:%M")
+                            forecast.append({
+                                "hour": i,
+                                "actual_hour": (current_hour + i) % 24,
+                                "carbon_intensity": round(intensity, 1),
+                                "timestamp": timestamp,
+                            })
+                        if forecast:
+                            return forecast
+            except (requests.RequestException, KeyError, ValueError):
+                continue
+                
+    return get_carbon_forecast_mock(zone_code)
 
 
 def get_best_window(forecast_data, window_size=3):

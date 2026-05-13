@@ -75,8 +75,10 @@ with col_opts:
     uploaded = st.file_uploader("📁 Or upload a .py file", type=["py"])
     if uploaded is not None:
         file_content = uploaded.read().decode("utf-8")
-        st.session_state.current_code = file_content
-        st.rerun()
+        if st.session_state.get("code_input") != file_content:
+            st.session_state.current_code = file_content
+            st.session_state.code_input = file_content
+            st.rerun()
     
     # Workload type
     workload_type = st.radio(

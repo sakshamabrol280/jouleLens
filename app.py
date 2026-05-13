@@ -25,9 +25,6 @@ st.markdown(CSS, unsafe_allow_html=True)
 # Initialize database
 init_db()
 
-# Seed mock data if DB is empty
-if len(get_all_runs()) == 0:
-    seed_mock_data()
 
 # Initialize session state defaults
 defaults = {
@@ -67,11 +64,11 @@ with st.sidebar:
     st.session_state.selected_region = regions[selected_name]
     
     # Cost per kWh
-    st.session_state.cost_per_kwh = st.number_input(
+    st.session_state.cost_per_kwh = st.slider(
         "💰 Cost per kWh (₹)",
         min_value=0.01,
-        max_value=1.0,
-        value=st.session_state.cost_per_kwh,
+        max_value=20.0,
+        value=float(st.session_state.cost_per_kwh),
         step=0.01,
         format="%.2f",
     )
