@@ -75,6 +75,17 @@ html, body, [data-testid="stAppViewContainer"] {
     color: var(--text-primary) !important;
     font-family: 'JetBrains Mono', monospace !important;
     font-weight: 700 !important;
+    font-size: 1.4rem !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    word-break: break-all !important;
+}
+
+[data-testid="stMetric"] [data-testid="stMetricValue"] > div {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
 }
 
 /* ===== Buttons ===== */

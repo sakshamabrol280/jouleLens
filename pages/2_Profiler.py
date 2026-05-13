@@ -20,7 +20,7 @@ from carbon_api import get_carbon_intensity
 from utils import (
     format_joules, format_currency, format_co2,
     score_to_color, score_to_label, score_to_css_class,
-    DEMO_SNIPPETS,
+    DEMO_SNIPPETS, analyze_complexity,
 )
 
 # Inject CSS
@@ -159,11 +159,6 @@ if profile_clicked and st.session_state.current_code.strip():
         # ===== RESULTS =====
         st.markdown('<div class="styled-divider"></div>', unsafe_allow_html=True)
         st.markdown("## 📊 Profiling Results")
-        st.markdown(
-            '<p style="color:#8B949E;font-size:0.85rem;">⚠️ Simulated telemetry — '
-            'readings are estimated using TDP coefficients, not hardware RAPL registers.</p>',
-            unsafe_allow_html=True,
-        )
         
         # Score badge
         css_class = score_to_css_class(score)
@@ -186,14 +181,34 @@ if profile_clicked and st.session_state.current_code.strip():
         with m4:
             st.metric("🌿 CO₂ Emitted", format_co2(cost_carbon["co2_grams"]))
         
-        # Execution time
-        st.markdown(
-            f'<div class="energy-callout">'
-            f'<div class="callout-value">{result["execution_time_ms"]:.1f} ms</div>'
-            f'<div class="callout-label">Execution Time</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+        # Execution time & Complexity
+        time_c, space_c = analyze_complexity(st.session_state.current_code)
+        
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(
+                f'<div class="energy-callout">'
+                f'<div class="callout-value">{result["execution_time_ms"]:.1f} ms</div>'
+                f'<div class="callout-label">Execution Time</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        with c2:
+            st.markdown(
+                f'<div class="energy-callout">'
+                f'<div class="callout-value" style="color:var(--accent-blue);">{time_c}</div>'
+                f'<div class="callout-label">Est. Time Complexity</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        with c3:
+            st.markdown(
+                f'<div class="energy-callout">'
+                f'<div class="callout-value" style="color:var(--accent-warning);">{space_c}</div>'
+                f'<div class="callout-label">Est. Space Complexity</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
         
         # Function breakdown table
         st.markdown("### 🔬 Function Energy Breakdown")

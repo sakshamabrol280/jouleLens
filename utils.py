@@ -126,3 +126,112 @@ results = [fibonacci(i) for i in range(50)]
 print(results[-1])
 ''',
 }
+
+
+def analyze_complexity(code_string):
+    """
+    Heuristically analyze Python code string for Time and Space complexity.
+    Returns (time_complexity, space_complexity).
+    """
+    import ast
+    try:
+        tree = ast.parse(code_string)
+    except Exception:
+        return "O(?)", "O(?)"
+
+    class ComplexityVisitor(ast.NodeVisitor):
+        def __init__(self):
+            self.current_loop_depth = 0
+            self.max_loop_depth = 0
+            self.allocates_memory = False
+
+        def visit_For(self, node):
+            self.current_loop_depth += 1
+            self.max_loop_depth = max(self.max_loop_depth, self.current_loop_depth)
+            self.generic_visit(node)
+            self.current_loop_depth -= 1
+
+        def visit_While(self, node):
+            self.current_loop_depth += 1
+            self.max_loop_depth = max(self.max_loop_depth, self.current_loop_depth)
+            self.generic_visit(node)
+            self.current_loop_depth -= 1
+            
+        def visit_ListComp(self, node):
+            self.allocates_memory = True
+            self.current_loop_depth += 1
+            self.max_loop_depth = max(self.max_loop_depth, self.current_loop_depth)
+            self.generic_visit(node)
+            self.current_loop_depth -= 1
+
+        def visit_DictComp(self, node):
+            self.allocates_memory = True
+            self.current_loop_depth += 1
+            self.max_loop_depth = max(self.max_loop_depth, self.current_loop_depth)
+            self.generic_visit(node)
+            self.current_loop_depth -= 1
+
+        def visit_List(self, node):
+            self.allocates_memory = True
+            self.generic_visit(node)
+
+        def visit_Dict(self, node):
+            self.allocates_memory = True
+            self.generic_visit(node)
+
+        def visit_Set(self, node):
+            self.allocates_memory = True
+            self.generic_visit(node)
+            
+        def visit_Call(self, node):
+            if isinstance(node.func, ast.Attribute) and node.func.attr in ('append', 'extend', 'add', 'update'):
+                self.allocates_memory = True
+            self.generic_visit(node)
+
+    visitor = ComplexityVisitor()
+    visitor.visit(tree)
+
+    if visitor.max_loop_depth == 0:
+        time_c = "O(1)"
+    elif visitor.max_loop_depth == 1:
+        time_c = "O(N)"
+    elif visitor.max_loop_depth == 2:
+        time_c = "O(N²)"
+    elif visitor.max_loop_depth == 3:
+        time_c = "O(N³)"
+    else:
+        time_c = f"O(N^{visitor.max_loop_depth})"
+
+    class RecursionVisitor(ast.NodeVisitor):
+        def __init__(self):
+            self.has_recursion = False
+            self.current_func = None
+        
+        def visit_FunctionDef(self, node):
+            old_func = self.current_func
+            self.current_func = node.name
+            self.generic_visit(node)
+            self.current_func = old_func
+            
+        def visit_Call(self, node):
+            if isinstance(node.func, ast.Name) and self.current_func == node.func.id:
+                self.has_recursion = True
+            self.generic_visit(node)
+
+    rec_visitor = RecursionVisitor()
+    rec_visitor.visit(tree)
+    
+    if rec_visitor.has_recursion:
+        if visitor.max_loop_depth == 0:
+            time_c = "O(2^N)"
+        space_c = "O(N)"
+    else:
+        if visitor.allocates_memory:
+            space_c = "O(N)"
+        else:
+            space_c = "O(1)"
+
+    if time_c == "O(1)" and space_c == "O(N)":
+        time_c = "O(N)"
+        
+    return time_c, space_c
