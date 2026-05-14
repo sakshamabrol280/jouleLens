@@ -78,7 +78,6 @@ with col_input:
     
     code = st.text_area(
         "📄 Write Code",
-        value=initial_value,
         height=300,
         key="code_input",
         placeholder="# Paste your code here...",

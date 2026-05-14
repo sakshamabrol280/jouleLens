@@ -85,7 +85,15 @@ def simulate_energy(code_string, workload_type="CPU-Bound", language="Python"):
         # Clean up any C++ scope resolution for display
         defined_functions = list(set(m.split('::')[-1] for m in matches))
 
-    exec_ns = {"__builtins__": __builtins__}
+    # Mock interactive functions to prevent the profiler from hanging
+    def mock_input(prompt=""):
+        return "0"
+
+    exec_ns = {
+        "__builtins__": __builtins__,
+        "input": mock_input,
+        "help": lambda *args: None,
+    }
     profiler = None
     profiler_stats = None
     

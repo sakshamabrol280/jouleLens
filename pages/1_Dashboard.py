@@ -25,11 +25,20 @@ init_db()
 
 
 # Header
-st.markdown('<h1 class="gradient-header">JouleLens Dashboard</h1>', unsafe_allow_html=True)
-st.markdown(
-    '<p class="gradient-subtitle">Energy is the Final Currency of Computing</p>',
-    unsafe_allow_html=True,
-)
+col_title, col_reset = st.columns([4, 1])
+with col_title:
+    st.markdown('<h1 class="gradient-header">JouleLens Dashboard</h1>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="gradient-subtitle">Energy is the Final Currency of Computing</p>',
+        unsafe_allow_html=True,
+    )
+
+with col_reset:
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🗑️ Reset All", help="Wipe all history for a fresh start"):
+        from database import clear_all_runs
+        clear_all_runs()
+        st.rerun()
 
 # ===== KPI METRICS =====
 stats = get_aggregate_stats()
