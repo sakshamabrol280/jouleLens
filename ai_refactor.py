@@ -45,6 +45,8 @@ def get_green_refactor(code_string, function_breakdown=None, language="Python"):
     Returns:
         Parsed JSON dict with refactoring suggestions, or {"error": str} on failure.
     """
+    # Force reload environment variables to catch .env changes without restart
+    load_dotenv(override=True)
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     
     if not api_key:

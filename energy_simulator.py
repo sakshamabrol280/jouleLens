@@ -79,9 +79,11 @@ def simulate_energy(code_string, workload_type="CPU-Bound", language="Python"):
         except SyntaxError:
             pass
     else:
-        # Simple regex heuristic for C/C++/Java
-        matches = re.findall(r'\b\w+\s+(\w+)\s*\([^)]*\)\s*\{', code_string)
-        defined_functions = list(set(matches))
+        # Improved regex heuristic for C/C++/Java to handle modifiers (public, static, etc.)
+        # and C++ scope resolution (Class::Method)
+        matches = re.findall(r'(?:[\w<>:\[\]]+\s+)+([\w:]+)\s*\([^)]*\)\s*\{', code_string)
+        # Clean up any C++ scope resolution for display
+        defined_functions = list(set(m.split('::')[-1] for m in matches))
 
     exec_ns = {"__builtins__": __builtins__}
     profiler = None

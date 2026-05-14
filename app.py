@@ -140,7 +140,7 @@ with r1_col2:
 r2_col1, r2_col2 = st.columns(2)
 with r2_col1:
     st.markdown("""
-    <a href="Carbon_Scheduler" target="_self" style="text-decoration:none;">
+    <a href="Scheduler" target="_self" style="text-decoration:none;">
     <div class="metric-card">
         <div class="metric-label">🌍 SCHEDULE</div>
         <div class="metric-value" style="font-size:1.1rem;">Carbon Aware</div>
